@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>An Intro to Unicorn Companies - Josh Zheng (zz459), Val Mack (dgm97), Jiangjie Man (jm2559)</title>
+		<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto">
+		<link rel="stylesheet" href="style/main.css"/>
+		<link rel="stylesheet" href="style/map.css"/>
+		<link rel="stylesheet" href="style/vis2.css"/>
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/foundation-icons/3.0/foundation-icons.min.css">
+		<script src="https://d3js.org/d3.v4.min.js"></script>
+		<script src="http://d3js.org/topojson.v2.min.js"></script>
+	</head>
+
+	<body>
+		<div class="heading">
+			<h1>What is a <div class="yellow">UNICORN</div> company?</h1>
+			<div class="intro">
+				<h3 class="yellow">Introduction</h3>
+				<p>The term “unicorn” is used to describe startups that are privately held and have a valuation of over $1 billion USD. They have been so named because they were rare 5 years ago, and since then the number of startups that fit into this category has increased by over 300%
+					<a href=http://fortune.com/2016/08/16/tech-unicorns-valuation-fall>[ fact check! ]</a>. This webpage illuminates these economic changes through visual representations.</p>
+				<i class="fi-arrow-down small"></i>
+			</div>
+
+		</div>
+		
+		<div class="container">
+
+		<div class="plots" id="map">
+			<h2>Top10 Unicorns Worldwide</h2>
+			<p class="summary">The funding and valuation <a href=https://www.cbinsights.com/research-unicorn-companies>data</a> displayed below were collected from CB Insights. The graphs provided are meant to make you say "wow" or scratch your head.</p>
+  	</div>
+
+  		<script>
+   			var svgMap = d3.select("#map")
+   			.append("svg")
+   			.attr("width",1200)
+   			.attr("height",700)
+   			.style("margin-left", "auto")
+				.style("margin-right", "auto")
+				.style("display", "block");
+
+   			var projection = d3.geoMercator().scale(75);
+   			var pathGenerator = d3.geoPath().projection(projection);
+
+   			var rawData;
+   			var countries;
+
+		   	d3.json("data/world-50m.json", function (error, data) {
+		    	rawData = data;
+		    	console.log("Code in the call-back function is only executed when the data file loads.");
+		    	countries = topojson.feature(rawData, rawData.objects.countries);
+		    	showMap();
+		   	});
+
+			var sf = [-122.4073212, 37.7717523];
+			var pa = [-122.1642676, 37.4426151];
+			var h = [-118.3293334, 33.9196549];
+			var ny = [-74.258194, 40.7058316];
+			var bj = [116.117268, 39.9390731];
+			var sh = [120.9162732, 31.2243084];
+			var india = [77.3507385, 12.954517];
+			// var keyLocations = [sf,bj,bj,sf,pa,sh,bj,ny,india,h];
+			var keyLocations = [sf,sf,pa,h,ny,india,bj,bj,bj,sh];
+			//   	var keyLocations = [[-122.4792983, 37.7280332], [116.117268, 39.9390731], [116.117268, 39.9390731], [116.117268, 39.9390731], [-122.4073212, 37.7717523], [-122.1642676, 37.4426151], [77.3507385, 12.954517], [-74.258194, 40.7058316], [120.9162732, 31.2243084], [-118.3293334, 33.9196549]];
+
+		   	function showMap() {
+		    	// Create or modify paths for each country
+		    	projection.fitExtent([[0,-500], [svgMap.attr("width"), 1500]], countries);
+		    	pathGenerator = d3.geoPath().projection(projection);
+
+		    	var paths = svgMap.selectAll("path.country").data(countries.features);
+		    	paths.enter().append("path").attr("class", "country")
+		    		.merge(paths)
+		    		.attr("transform", "translate(0,-100)")
+		    		.attr("d", function (country) {
+		     			return pathGenerator(country);
+		    		})
+		    		.style("fill", "#F3A530")
+		    		.style("stroke", "white");
+
+			    var circles = svgMap.selectAll("circle.map").data(keyLocations);
+
+			    // If we have reduced the number of points, remove circles
+			    circles.exit().remove();
+
+			    // If we have increased the number of points, add circles, then
+			    //  merge them with the original selection so we can modify
+			    //  the appearance of everything all at once.
+			    circles.enter().append("circle").attr("class", "map")
+				    .attr("r", 20)
+				    .attr("transform", "translate(0,-100)")
+				    .merge(circles)
+				    .attr("cx", function(d) { return projection(d)[0]; })
+				    .attr("cy", function(d) { return projection(d)[1]; })
+				    .style("fill", "#367ABD")
+				    .style("fill-opacity", 0.6);
+
+				// load top10 unicorn companies data
+			   	var uniData;
+			   	d3.csv("data/top10_ordered.csv", parseLine, function (error, data) {
+					if (error) { console.log(error); }
+					uniData = d3.nest().key(function (d) { return d.Company; }).entries(data);
+					for (var i = 0; i < uniData.length; i++) {
+						fundingTrends(uniData[i].values, i);
+					}
+				});
+				// define svgs for 10 companies
+				var multiSvgs = svgMap.append("g").attr("transform", "translate(0, 400)");
+			   	multiSvgs.append("rect")
+		   			.attr("width",1210)
+					.attr("height", 295)
+					.attr("x", -5)
+					.attr("y", 10)
+					.style("fill", "white")
+					.style("stroke", "grey");
+				// multiSvgs.append("rect")
+				//   			.attr("width",200)
+ 			// 		.attr("height", 200)
+ 			// 		.attr("x", 1005)
+ 			// 		.attr("y", -405)
+ 			// 		.style("fill", "white")
+ 			// 		.style("stroke", "grey");
+				// add lines between location on map and the funidng plot
+				var lines = svgMap.selectAll("line.map").data(keyLocations);
+				lines.exit().remove();
+				lines.enter().append("line").attr("class", "map")
+					.attr("x1", function(d) { return projection(d)[0]; })
+					.attr("y1", function(d) { return projection(d)[1] - 100; })
+					.attr("x2", function(d, i) { return 120 * i + 20; })
+					.attr("y2", 410)
+					.style("stroke", "grey")
+					.style("opacity", "1")
+					.style("stroke-width", "2");
+
+				var dateScale = d3.scaleTime().domain([new Date("2006-1-1"), new Date("2017-3-1")]).range([5, 110]);
+				var dateAxis = d3.axisBottom(dateScale);
+			   	var fundingScale = d3.scaleLinear().domain([0, 3500000000]).range([110, 0]);
+			   	var fundingAxis = d3.axisLeft(fundingScale);
+
+				var pathGenerator = d3.line()
+			   		.x(function (d) { return dateScale(d.Date); })
+			   		.y(function (d) { return fundingScale(d.Funding); });
+			   	function parseLine (line) {
+					line.Date = new Date(line.Date);
+					line.Funding = Number(line.Funding);
+					return line;
+			   	}
+				// function that plot for each company
+			   	function fundingTrends(data, index) {
+					// append svgs for each company
+					var svgPlot = multiSvgs.append("svg")
+						.attr("width",120)
+						.attr("height", 300)
+						.attr("x", 120 * index)
+						.attr("y", 0)
+						.style("border", "solid #ccc 1px");
+					// name for each company
+					svgPlot.append("text")
+						.attr("x", 0)
+						.attr("y", 30)
+						.style("font", "16px sans-serif")
+						.style("font-weight", "600")
+						.style("text-anchor", "front")
+						.text(data[0].Company);
+					// plot line graphs of funding vs. date for  each company
+					var plot1 = svgPlot.append("g").attr("transform", "translate(0,40)");
+		 			plot1.append("g").call(dateAxis.ticks(3)).attr("transform", "translate(0,120)");
+					var paths = plot1.selectAll("path.lineGraph").data(data);
+					paths.enter().append("path")
+						.merge(paths)
+						.attr("class", "lineGraph")
+						.transition().duration(1000)
+						.attr("d", pathGenerator(data))
+						.style("stroke", "green")
+						.style("stroke-width", "1")
+						.style("fill", "none");
+					// add dot for each data point
+					data.forEach(function (d){
+						svgPlot.append("circle")
+						.attr("cx", dateScale(d.Date))
+						.attr("cy", fundingScale(d.Funding) + 40)
+						.attr("r", 3).style("fill", "green");
+					});
+					// bubbles show current valuation for each company
+					svgPlot.append("circle")
+						.attr("cx", 55)
+						.attr("cy", 245)
+						.attr("r", Math.sqrt(data[0].CurrentV / 25000000))
+						.style("fill", "#81fcad")
+					svgPlot.append("text")
+						.attr("x", 55)
+						.attr("y", 245)
+						.style("font", "12px sans-serif")
+						.style("font-weight", "600")
+						.style("text-anchor", "middle")
+						.style("alignment-baseline", "middle")
+						.text("$" + (data[0].CurrentV / 1000000000) + "bn");
+				}
+		   }
+   		</script>
+
+		<div class="plots" id="vis2">
+			<h2>Venture Capital Investments By Stage</h2>
+			<p class="summary">This <a href=https://www.quandl.com/api/v3/datasets/NVCA/VENTURE_3_09.json?api_key=3N33sbyWC7KbU4aGfRGn&start_date=1999-06-28>data</a> is from the NVCA yearbook, which includes a comprehensive analysis of U.S. venture capital industry statistics from 2000 to 2016. Values are in USD million.</p>
+		</div>
+
+		<script>
+			var margin = {top: 30, right: 50, bottom: 30, left: 40};
+			var width = 960 - margin.left - margin.right;
+			var height = 500 - margin.top - margin.bottom;
+
+			var svg = d3.select("#vis2").append("svg")
+				.attr("width", width + margin.left + margin.right)
+				.attr("height", height + margin.top + margin.bottom)
+				.style("margin-left", "auto")
+				.style("margin-right", "auto")
+				.style("display", "block");
+			// add y-axis name
+			svg.append("text")
+				.attr("x", 0)
+				.attr("y", 10)
+				.attr("dy", ".35em")
+				.style("font", "11px sans-serif")
+				.style("text-anchor", "front")
+				.text("Investments (M)");
+			// add x-axis name
+			svg.append("text")
+				.attr("x", 900)
+				.attr("y", 482)
+				.attr("dy", ".35em")
+				.style("font", "11px sans-serif")
+				.style("text-anchor", "front")
+				.text("Year");
+
+			// Define variables outside the scope of the callback function
+			var rawData, nestedData = [];
+			// color scale
+			var sectorScale = d3.scaleOrdinal(d3.schemeCategory10);
+			// y-axis scale
+			var valueScale = d3.scaleLinear().domain([0, 100000]).range([height, 0]);
+			var valueAxis = d3.axisLeft(valueScale);
+
+			var stack = d3.stack().keys(["Seed", "Early_Stage", "Expansion", "Later_Stage"]);
+
+			// set up plot
+			var plot = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+			plot.append("g").call(valueAxis).attr("transform", "translate(0, 0)");
+
+			d3.json("data/VENTURE_3_09.json", function(error, data) {
+				rawData = data["dataset"]["data"];
+				// modify the data to proper json format
+				nestedData = rawData.map(function(item) { return {date: new Date(item[0]), Seed: item[1], Early_Stage: item[2], Expansion: item[3], Later_Stage: item[4]}; });
+				// add date (x) axis
+				var startDate = new Date(data["dataset"]["start_date"]);
+				var endDate = new Date(data["dataset"]["end_date"]);
+				var dateScale = d3.scaleTime().domain([startDate, endDate]).range([0, width]);
+				var dateAxis = d3.axisBottom(dateScale);
+
+				// add grid lines
+				var xGridlines = d3.axisBottom(dateScale).ticks(10);
+				var yGridlines = d3.axisLeft(valueScale).ticks(10);
+
+				plot.append("g").call(dateAxis)
+					.attr("transform","translate(0," + height + ")");
+
+				var areaGenerator = d3.area()
+					.x(function(d) { return dateScale(d.data.date); })
+					.y0(function(d) { return valueScale(d[0]); })
+					.y1(function(d) { return valueScale(d[1]); });
+
+				// add the X gridlines
+				plot.append("g")
+					.attr("class", "grid")
+					.attr("transform", "translate(0," + height + ")")
+					.call(xGridlines
+					.tickSize(-height)
+					.tickFormat("")
+				);
+
+				// add the Y gridlines
+				plot.append("g")
+					.attr("class", "grid")
+					.call(yGridlines
+					.tickSize(-width)
+					.tickFormat("")
+				);
+
+				var layer = plot.selectAll(".layer")
+					.data(stack(nestedData))
+					.enter().append("g")
+					.attr("class", "layer");
+
+				layer.append("path")
+					.attr("class", "area")
+					.attr("d", function(d) {
+						return areaGenerator(d);
+					})
+					.style("fill", function(d, i) {
+						return sectorScale(i);
+					})
+					.style("fill-opacity", 0.6);
+
+				// add labels for each area
+				layer.append("text")
+					.attr("x", width - 3)
+					.attr("y", function(d) { return valueScale((d[0][0] + d[1][1]) / 2); })
+					.attr("dy", ".35em")
+					.style("font", "11px sans-serif")
+					.style("text-anchor", "front")
+					.text(function(d) { return d.key; });
+
+				// add highest point
+				plot.append("circle")
+					.attr("r", 4)
+					.attr("cx", dateScale(new Date("2000-12-31")))
+					.attr("cy", valueScale(105447.8478) + 3)
+					.attr("fill-opacity", 0.5)
+
+				plot.append("text")
+					.attr("x", dateScale(new Date("2000-12-31")) + 5)
+					.attr("y", valueScale(105447.8478))
+					.style("font", "12px sans-serif")
+					.style("text-anchor", "front")
+					.text("105447.8478 million");
+			});
+		</script>
+
+			
+		<div class="plots" id="vis3">
+			<h2>Venture Capital Funding by Industry</h2>
+			<p class="summary">This <a href=https://www.quandl.com/api/v3/datasets/NVCA/VENTURE_3_09.json?api_key=3N33sbyWC7KbU4aGfRGn&start_date=1999-06-28>data</a> is from the NVCA yearbook, which includes a comprehensive analysis of U.S. venture capital industry statistics from 2000 to 2016. Values are in USD million.</p>
+		</div>
+		</div>
+		<script>
+			var svg3 = d3.select("#vis3").append("svg")
+			.attr("width", 900)
+			.attr("height", 600);
+
+			// scales
+			var timeScale3 = d3.scaleTime().domain([new Date("1999-12-31"), new Date("2016-01-02")]).range([0, 800]);
+			var yScale3 = d3.scaleLinear().domain([0,2200]).range([550, 0]);
+			// colors
+			var industryScale = d3.scaleOrdinal(d3.schemeCategory20);
+			// create axes
+			var xAxis3 = d3.axisBottom(timeScale3).ticks(d3.timeYear);
+			var yAxis3 = d3.axisLeft(yScale3).ticks();
+			// display axes
+			var plot3 = svg3.append("g").attr("transform", "translate(40,40)");
+			plot3.append("g").call(xAxis3).attr("transform", "translate(0,550)");
+			plot3.append("g").call(yAxis3);
+
+			var margin3 = {top: 30, right: 50, bottom: 30, left: 40};
+			var width3 = 890 - margin3.left - margin3.right;
+			var height3 = 800 - margin3.top - margin3.bottom;
+
+			// add grid lines
+			var xGridlines = d3.axisBottom(timeScale3).ticks();
+			var yGridlines = d3.axisLeft(yScale3).ticks();
+
+			// X gridlines
+				plot3.append("g")
+					.attr("class", "grid")
+					.attr("transform", "translate(0,740)")
+					.call(xGridlines.tickSize(-height3).tickFormat(""));
+				// Y gridlines
+				plot3.append("g")
+					.attr("class", "grid")
+					.call(yGridlines.tickSize(-width3).tickFormat(""));
+
+			var pathGen3 = d3.line()
+			.x(function (d) { return timeScale3(d.Date); })
+		  .y(function (d) { return yScale3(d.Amount); });
+
+			var rawData3;
+			var nestedData3;
+
+			function parseLine3 (line) {
+				line.Date = new Date(line.Date);
+				line.Amount = Number(line.Amount);
+				return line;
+			}
+
+			// collect data
+			d3.tsv("data/VCFundingByIndustry2000_NVCA-VENTURE_3_10B.tsv", parseLine3, function (error, data) {
+				rawData3 = data;
+
+				nestedData3 = d3.nest()
+					.key(function (d) { return d.Industry; })
+					.entries(data);
+
+				showTrends3(nestedData3);
+			});
+
+			function showTrends3(data) {
+				var paths3 = plot3.selectAll("path.trend3").data(data);
+				paths3.enter().append("path")
+					.merge(paths3)
+					.attr("class", "lineGraph")
+					.style("fill", "none")
+					.style("stroke-width", "5")
+					.attr("d", function(industry) {
+						return pathGen3(industry.values);
+					})
+					.style("stroke", function(industry, i) {
+						return industryScale(i);
+					});
+
+
+				var legends = plot3.append('g').attr("transform", "translate(260,-10)");
+				legends.append('circle')
+					.attr('r',200)
+					.attr('cx',160)
+					.attr('cy',60)
+					.attr('fill','white');
+
+				var legend = legends.selectAll('legend').data(data);
+				legend.enter().append('rect')
+				.attr('class','legend')
+				.attr('x', 0)
+				.attr('y', function(d, i){ return (i *  20) + 9;})
+				.attr('width', 20)
+				.attr('height', 20)
+				.style('opacity',1)
+				.style('fill', function(industry, i) {
+					return industryScale(i);
+				});
+				legend.enter().append('text')
+				.attr('x', 22)
+				.attr('y', function(d, i){ return (i *  20) + 24;})
+				.text(function(d){ return d.key; })
+				.style('font-size', '16px');
+				
+			}
+			
+		</script>
+		</div>
+
+	</body>
+</html>

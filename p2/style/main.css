@@ -1,0 +1,101 @@
+body {
+	font-family: 'Roboto', sans-serif;
+	background-color: white;
+}
+
+h1, h2, h3, h4 {
+	text-align: center;
+}
+
+h1 {
+	color: #C9E6F1;
+	font-size: 6em;
+}
+
+h3 {
+	font-size: 6em;
+	text-transform: uppercase;
+}
+
+h4 {
+	font-size: 1em;
+	text-align:center;
+}
+
+h1, h3, p {
+	margin: 0px 260px;
+}
+
+h2 {
+	font-size: 2em; 
+	padding-top: 30px;
+	padding-bottom: 10px;
+}
+
+p {
+	margin-top:40px;
+	line-height: 1.7em;
+	margin-bottom: 2em;
+	color: white;
+}
+
+a {
+  color: #C9E6F1;
+}
+
+.heading {
+	background-color: #6D6D6D; 
+	height: 600px;
+	margin: -20px;
+	padding: 80px 0px;
+	top: 0;
+	left: 0;
+}
+
+#intro {
+	color: white;
+}
+
+#button_change {
+	width:60px;
+    height:20px;
+	background: lightgrey;
+    color: #6d6d6d;
+    font-size: 8px;
+    border: none;
+    padding: 1px;
+    margin-left:2px;
+    float:right;
+}
+
+.yellow {
+	color: #E7C100;
+}
+
+.plots {
+	font: 10px sans-serif;
+	margin-left: auto;
+	margin-right: auto;
+	display: block;
+	background-color: white;
+}
+
+.top10 {
+	text-align: center;
+    background-color: white; 
+    margin: -20px;
+}
+
+.date_container {
+    /*background: gray;*/
+/*    border:solid gray;*/
+    position: absolute;
+    max-width: 20em;
+    margin-left: 870px;
+    margin-top: 170px;
+}
+
+.bar { fill: #88bbd7;
+}
+
+/*#88bbd7*/
